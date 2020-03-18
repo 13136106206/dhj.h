@@ -6,10 +6,16 @@
 #include <string.h>
 #include <stdbool.h>
 
+/* get_hex:  huangjue.deng  2020.3.18
+ *	while let data to get struct, 
+ * 	s_t *s = malloc(sizeof(*s)); 
+ * 	printf_hex(s, sizeof(s_t)); 
+ *	
+ */
 char *get_hex(void *data, size_t len) {
 	char buf[len + 1];
 	char *ret = malloc(len * 2 + 1);
-	memcpy(buf, data, len);
+	memcpy(buf, (char *) data, len);
 	memset(ret, 0, sizeof(ret));
 	for(int i = 0; i < len; i++) {
 		buf[i] = 0x00? sprintf(&ret[i * 2], "00") : (buf[i] < 0x10? sprintf(&ret[i * 2], "0%x", buf[i]) : sprintf(&ret[i * 2], "%x", buf[i]));
@@ -19,10 +25,17 @@ char *get_hex(void *data, size_t len) {
 	return ret;
 }
 
+
+/* get_format_hex:  huangjue.deng  2020.3.18
+ *	while let data to get struct, 
+ * 	s_t *s = malloc(sizeof(*s)); 
+ * 	printf_hex(s, sizeof(s_t)); 
+ *	
+ */
 char *get_format_hex(void *data, size_t len) {
 	char buf[len + 1];
 	char *ret = malloc(len * 2 + len / 4 + 1);
-	memcpy(buf, data, len);
+	memcpy(buf, (char *) data, len);
 	memset(ret, 0, sizeof(ret));
 	int count = 0;
 	int j = 0;
@@ -37,9 +50,16 @@ char *get_format_hex(void *data, size_t len) {
 	return ret;
 }
 
+
+/* printf_hex:  huangjue.deng  2020.3.18
+ *	while let data to get struct, 
+ *	s_t *s = malloc(sizeof(*s)); 
+ * 	printf_hex(s, sizeof(s_t)); 
+ *	
+ */
 bool printf_hex(void *data, size_t len) {
 	char buf[len + 1];
-	memcpy(buf, data, len);
+	memcpy(buf, (char *)data, len);
 	for(int i = 0; i < len; i++) {
 		buf[i] = 0x00? fprintf(stdout, "00") : (buf[i] < 0x10? fprintf(stdout, "0%x", buf[i]) : fprintf(stdout, "%x", buf[i]));
 
