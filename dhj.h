@@ -9,6 +9,25 @@
 #define ROUTE_ADD 1
 #define ROUTE_DEL 2
 
+char *xstrdup(char *str) {
+	char *p;
+	int len = 0;
+	if(p = strchr(str, '\n')) {
+		len = p - str;
+	} else {
+		len = strlen(str);
+	}
+
+	if(p) p = NULL;
+
+	if(!(p = malloc(len + 1))) {
+		return NULL;
+	}
+
+	memcpy(p, str, len);
+	return p;
+}
+
 /*
  *  IPv4 add/del route item in route table
     refer to https://www.cnblogs.com/wangshide/archive/2012/10/25/2740410.html
@@ -96,7 +115,7 @@ bool io_route(int action, char *ip, char *mask, char *iface) {
 	}
 
 	close(skfd);
-#elif
+#else
 	fprintf(stderr, "io_route() has no effect on your ostype !!!\n");
 	
 #endif
