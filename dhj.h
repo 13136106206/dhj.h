@@ -5,9 +5,29 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <net/route.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <unistd.h>
+#include <net/if.h>       /* ifreq struct */
+#include <netdb.h>
+
 
 #define ROUTE_ADD 1
 #define ROUTE_DEL 2
+
+
+double timeval_difference(struct timeval *t1, struct timeval *t2) {
+	fprintf(stderr, "%ld %ld\n", t2->tv_sec, t2->tv_usec);
+	fprintf(stderr, "%ld %ld\n", t1->tv_sec, t1->tv_usec);
+	return ((double) (((t2->tv_sec - t1->tv_sec) * 1.0) + ((t2->tv_usec - t1->tv_usec) / 1000000.0)));
+}
 
 char *xstrdup(char *str) {
 	char *p;
@@ -33,7 +53,6 @@ char *xstrdup(char *str) {
     refer to https://www.cnblogs.com/wangshide/archive/2012/10/25/2740410.html
  */
 bool io_route(int action, char *ip, char *mask, char *iface) {
-#if defined (HAVE_LINUX)
 	struct rtentry route;  /* route item struct */
 	char target[128] = {0};
 	char gateway[128] = {0};
@@ -51,7 +70,6 @@ bool io_route(int action, char *ip, char *mask, char *iface) {
 
 	if(ip) {   // default is a network target
 		strcpy(target, ip);
-		fprintf(stderr, "target: %s\n", target);
 		addr = (struct sockaddr_in*) &route.rt_dst;
 		addr->sin_family = AF_INET;
 		addr->sin_addr.s_addr = inet_addr(target);
@@ -109,16 +127,12 @@ bool io_route(int action, char *ip, char *mask, char *iface) {
 		}
 
 	} else {
-		log0("Error route action(%d)", action);	
+		fprintf(stderr, "Error route action(%d)\n", action);	
 		return false;
 
 	}
 
 	close(skfd);
-#else
-	fprintf(stderr, "io_route() has no effect on your ostype !!!\n");
-	
-#endif
 	return true;
 }
 
