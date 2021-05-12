@@ -22,14 +22,63 @@
 #define ROUTE_ADD 1
 #define ROUTE_DEL 2
 
+#define FFL __FILE__, __FUNCTION__, __LINE__
+#define logl() fprintf(stderr, "(%s)%s[%d]...\n", FFL)
+#define logs(x) fprintf(stderr, "(%s)%s[%d]: %s\n", FFL, x)
+#define logi(x) fprintf(stderr, "(%s)%s[%d]: %ld\n", FFL, x)
 
-double timeval_difference(struct timeval *t1, struct timeval *t2) {
+static double timeval_difference(struct timeval *t1, struct timeval *t2) {
 	fprintf(stderr, "%ld %ld\n", t2->tv_sec, t2->tv_usec);
 	fprintf(stderr, "%ld %ld\n", t1->tv_sec, t1->tv_usec);
 	return ((double) (((t2->tv_sec - t1->tv_sec) * 1.0) + ((t2->tv_usec - t1->tv_usec) / 1000000.0)));
 }
 
-char *xstrdup(char *str) {
+static inline void *xnstrdup(void *data, size_t n) {
+	char *p = calloc(n, sizeof(char *));
+
+	if(!p) {
+		return NULL;
+	}
+
+	memcpy(p, data, n);
+
+	return p;
+}
+
+static inline void *xrealloc(void *p, size_t n) {
+	p = realloc(p, n);
+
+	if(!p) {
+		abort();
+	}
+
+	return p;
+}
+
+#ifdef _WIN32
+	#define get_pointer_useable_size(x) _msize(x)
+#else
+	#define get_pointer_useable_size(x) malloc_usable_size(x)
+#endif
+
+static inline void *xnstrcat(void *p, void *data, size_t n) {
+	size_t len = strlen((char *)p);
+	size_t need = len - get_pointer_useable_size(p) + n + 1;
+	if(len + n + 1 > get_pointer_useable_size(p)) {
+		p = realloc(p, len + n + 1);
+	}
+
+	if(!p) {
+		abort();
+	}
+
+	memcpy(p + len, data, n);
+
+	return p;
+}
+
+static inline void *xstrdup(void *data) {
+	char *str = (char *)data;
 	char *p;
 	int len = 0;
 	if(p = strchr(str, '\n')) {
@@ -61,7 +110,6 @@ char *get_hex(void *data, size_t len) {
 	memset(ret, 0, sizeof(ret));
 	for(int i = 0; i < len; i++) {
 		buf[i] = 0x00? sprintf(&ret[i * 2], "00") : (buf[i] < 0x10? sprintf(&ret[i * 2], "0%x", buf[i]) : sprintf(&ret[i * 2], "%x", buf[i]));
-
 	}
 
 	return ret;
@@ -84,7 +132,6 @@ char *get_format_hex(void *data, size_t len) {
 	for(int i = 0; i < len; i++) {
 		j = i * 2 + count;
 		buf[i] = 0x00? sprintf(&ret[j], "00") : (buf[i] < 0x10? sprintf(&ret[j], "0%x", buf[i]) : sprintf(&ret[j], "%x", buf[i]));
-
 
 		(i + 1) % 16 ? ((i + 1) % 4 ? : (sprintf(&ret[j + 2], " ") && count++)) : (sprintf(&ret[j + 2], "\n") && count++);
 	}
