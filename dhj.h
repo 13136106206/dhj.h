@@ -27,6 +27,10 @@
 #define logs(x) fprintf(stderr, "(%s)%s[%d]: %s\n", FFL, x)
 #define logi(x) fprintf(stderr, "(%s)%s[%d]: %ld\n", FFL, x)
 
+#define null_char(x, n)  char *x = NULL;
+#define heap_char(x, n)  char *x = calloc(n, 1)
+#define stack_char(x, n) char x[n] = {0}
+
 static double timeval_difference(struct timeval *t1, struct timeval *t2) {
 	fprintf(stderr, "%ld %ld\n", t2->tv_sec, t2->tv_usec);
 	fprintf(stderr, "%ld %ld\n", t1->tv_sec, t1->tv_usec);
