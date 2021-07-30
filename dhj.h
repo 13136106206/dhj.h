@@ -17,19 +17,65 @@
 #include <unistd.h>
 #include <net/if.h>       /* ifreq struct */
 #include <netdb.h>
+#include <stdarg.h>
 
 
 #define ROUTE_ADD 1
 #define ROUTE_DEL 2
 
-#define FFL __FILE__, __FUNCTION__, __LINE__
-#define logl() fprintf(stderr, "(%s)%s[%d]...\n", FFL)
-#define logs(x) fprintf(stderr, "(%s)%s[%d]: %s\n", FFL, x)
-#define logi(x) fprintf(stderr, "(%s)%s[%d]: %ld\n", FFL, x)
-
 #define null_char(x, n)  char *x = NULL;
 #define heap_char(x, n)  char *x = calloc(n, 1)
 #define stack_char(x, n) char x[n] = {0}
+
+#define LOG_FILE "/var/log/dhj.log"
+
+void logff(const char *file, const char *function, int line, const char *format, ...) {
+	va_list ap;
+	char message[4096] = {0};
+
+	va_start(ap, format);
+	int len = vsnprintf(message, sizeof(message), format, ap);
+	message[sizeof(message) - 1] = 0;
+	va_end(ap);
+
+	if(len > 0 && (size_t)len < sizeof(message) - 1 && message[len - 1] == '\n') {
+		message[len - 1] = 0;
+	}
+
+	FILE *fp = fopen(LOG_FILE, "a");
+	if(!fp) {
+		return;
+	}
+
+        time_t t = time(NULL);
+        char timestr[4096] = {0};
+        strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", localtime(&t));
+        fprintf(fp, "[%s] %s:%s [%d] %s\n", timestr, file, function, line, message);
+	fclose(fp);
+}
+
+void logdd(const char *file, const char *function, int line, const char *format, ...) {
+	va_list ap;
+	char message[4096] = {0};
+
+	va_start(ap, format);
+	int len = vsnprintf(message, sizeof(message), format, ap);
+	message[sizeof(message) - 1] = 0;
+	va_end(ap);
+
+	if(len > 0 && (size_t)len < sizeof(message) - 1 && message[len - 1] == '\n') {
+		message[len - 1] = 0;
+	}
+
+        time_t t = time(NULL);
+        char timestr[4096] = {0};
+        strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", localtime(&t));
+        fprintf(stderr, "[%s] %s:%s [%d] %s\n", timestr, file, function, line, message);
+}
+
+#define FFL __FILE__, __FUNCTION__, __LINE__
+#define logf(...)  logff(__FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define logd(...)  logdd(__FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 
 static double timeval_difference(struct timeval *t1, struct timeval *t2) {
 	fprintf(stderr, "%ld %ld\n", t2->tv_sec, t2->tv_usec);
