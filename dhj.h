@@ -154,17 +154,35 @@ static inline void *xstrdup(void *data) {
  *
  */
 uint8_t *get_hex(void *data, size_t len) {
-	uint8_t buf[len + 1];
-	uint8_t *ret = malloc(len * 2 + 1);
+	uint8_t buf[len];
+	uint8_t *ret = calloc(len * 2 + 1, 1);
+
 	memcpy(buf, data, len);
-	memset(ret, 0, sizeof(ret));
 	for(int i = 0; i < len; i++) {
-		sprintf(&ret[i * 2], "%02x", buf[i]);
+		sprintf(&ret[i * 2], "%02X", buf[i]);
 	}
 
 	return ret;
 }
 
+
+/* get_hex_back:  huangjue.deng  2020.3.18
+ *	while let data to get struct,
+ * 	s_t *s = malloc(sizeof(*s));
+ * 	printf_hex(s, sizeof(s_t));
+ *
+ */
+uint8_t *get_hex_back(void *data, size_t len) {
+	uint8_t buf[len];
+	uint8_t *ret = calloc(len / 2 + 1, 1);
+
+	memcpy(buf, data, len);
+	for(int i = 0; i < len / 2; i++) {
+		ret[i] = (buf[i * 2] >= 'A'? (buf[i * 2] - 'A' + 0xA) : (buf[i * 2] - '0')) * 0x10 + (buf[i * 2 + 1] >= 'A'? (buf[i * 2 + 1] - 'A' + 0xA) : (buf[i * 2 + 1] - '0'));
+	}
+
+	return ret;
+}
 
 /* get_format_hex:  huangjue.deng  2020.3.18
  *	while let data to get struct,
