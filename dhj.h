@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <time.h>
 #include <net/route.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -147,6 +148,38 @@ static inline void *xstrdup(void *data) {
 	return p;
 }
 
+/* printf_hex:  huangjue.deng  2020.3.18
+ *	while let data to get struct,
+ *	s_t *s = malloc(sizeof(*s));
+ * 	printf_hex(s, sizeof(s_t));
+ *
+ */
+bool printf_hex(void *data, size_t len) {
+	uint8_t buf[len + 1];
+	memcpy(buf, data, len);
+	for(int i = 0; i < len; i++) {
+		fprintf(stdout, "%02x", buf[i]);
+
+		(i + 1) % 16 ? ((i + 1) % 4 ? : fprintf(stdout, " ")) : fprintf(stdout, "\n");
+	}
+
+	fprintf(stdout, "\n");
+	return true;
+}
+
+uint8_t *to_upper(uint8_t *data) {
+	int len = strlen(data);
+
+	int i = 1;
+	do {
+		if((data)[i] >= 'a' && (data)[i] <= 'z') {
+			(data)[i] -= 0x20;
+		}
+	} while(++i < len);
+
+	return data;
+}
+
 /* get_hex:  huangjue.deng  2020.3.18
  *	while let data to get struct,
  * 	s_t *s = malloc(sizeof(*s));
@@ -165,7 +198,6 @@ uint8_t *get_hex(void *data, size_t len) {
 	return ret;
 }
 
-
 /* get_hex_back:  huangjue.deng  2020.3.18
  *	while let data to get struct,
  * 	s_t *s = malloc(sizeof(*s));
@@ -177,8 +209,11 @@ uint8_t *get_hex_back(void *data, size_t len) {
 	uint8_t *ret = calloc(len / 2 + 1, 1);
 
 	memcpy(buf, data, len);
+	to_upper(buf);
+
 	for(int i = 0; i < len / 2; i++) {
 		ret[i] = (buf[i * 2] >= 'A'? (buf[i * 2] - 'A' + 0xA) : (buf[i * 2] - '0')) * 0x10 + (buf[i * 2 + 1] >= 'A'? (buf[i * 2 + 1] - 'A' + 0xA) : (buf[i * 2 + 1] - '0'));
+		//logd("        [%02x %02x]: ([%02x] * 0x10)[%02x] + [%02x] = [%02x]:[%c]", buf[i * 2], buf[i * 2 + 1], buf[i * 2] >= 'A'? (buf[i * 2] - 'A' + 0xA) : (buf[i * 2] - '0'), (buf[i * 2] >= 'A'? (buf[i * 2] - 'A' + 0xA) : (buf[i * 2] - '0')) * 0x10, buf[i * 2 + 1] >= 'A'? (buf[i * 2 + 1] - 'A' + 0xA) : (buf[i * 2 + 1] - '0'), ret[i]);
 	}
 
 	return ret;
@@ -207,25 +242,6 @@ uint8_t *get_format_hex(void *data, size_t len) {
 	return ret;
 }
 
-
-/* printf_hex:  huangjue.deng  2020.3.18
- *	while let data to get struct,
- *	s_t *s = malloc(sizeof(*s));
- * 	printf_hex(s, sizeof(s_t));
- *
- */
-bool printf_hex(void *data, size_t len) {
-	uint8_t buf[len + 1];
-	memcpy(buf, data, len);
-	for(int i = 0; i < len; i++) {
-		fprintf(stdout, "%02x", buf[i]);
-
-		(i + 1) % 16 ? ((i + 1) % 4 ? : fprintf(stdout, " ")) : fprintf(stdout, "\n");
-	}
-
-	fprintf(stdout, "\n");
-	return true;
-}
 
 #ifdef _WIN32
 int windows_control_route(int action, const char *ip, const char *mask, const char *gateway) {
