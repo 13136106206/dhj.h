@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <time.h>
+#include <sys/time.h>
 #include <net/route.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -27,10 +28,12 @@
 #define null_char(x, n)  char *x = NULL;
 #define heap_char(x, n)  char *x = calloc(n, 1)
 #define stack_char(x, n) char x[n] = {0}
+#define safe_free(x) if(x) {free(x);} x = NULL
 
 #define LOG_FILE "/var/log/dhj.log"
 
-void logff(const char *file, const char *function, int line, const char *format, ...) {
+static inline void logff(const char *file, const char *function, int line, const char *format, ...);
+static inline void logff(const char *file, const char *function, int line, const char *format, ...) {
 	va_list ap;
 	char message[4096] = {0};
 
@@ -55,7 +58,8 @@ void logff(const char *file, const char *function, int line, const char *format,
 	fclose(fp);
 }
 
-void logdd(const char *file, const char *function, int line, const char *format, ...) {
+static inline void logdd(const char *file, const char *function, int line, const char *format, ...);
+static inline void logdd(const char *file, const char *function, int line, const char *format, ...) {
 	va_list ap;
 	char message[4096] = {0};
 
@@ -78,12 +82,23 @@ void logdd(const char *file, const char *function, int line, const char *format,
 #define logf(...)  logff(__FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 #define logd(...)  logdd(__FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 
-static double timeval_difference(struct timeval *t1, struct timeval *t2) {
-	fprintf(stderr, "%ld %ld\n", t2->tv_sec, t2->tv_usec);
-	fprintf(stderr, "%ld %ld\n", t1->tv_sec, t1->tv_usec);
+static inline double timeval_difference(struct timeval *t1, struct timeval *t2);
+static inline double timeval_difference(struct timeval *t1, struct timeval *t2) {
 	return ((double) (((t2->tv_sec - t1->tv_sec) * 1.0) + ((t2->tv_usec - t1->tv_usec) / 1000000.0)));
 }
 
+static inline int time_ms(void);
+static inline int time_ms(void) {
+        struct timeval time;
+
+        if(!gettimeofday(&time, NULL)) {
+	       return (time.tv_sec % 1000) * 1000 + time.tv_usec / 1000;
+	}
+
+	return -1;
+}
+
+static inline void *xnstrdup(void *data, size_t n);
 static inline void *xnstrdup(void *data, size_t n) {
 	char *p = calloc(n, sizeof(char *));
 
@@ -96,6 +111,7 @@ static inline void *xnstrdup(void *data, size_t n) {
 	return p;
 }
 
+static inline void *xrealloc(void *p, size_t n);
 static inline void *xrealloc(void *p, size_t n) {
 	p = realloc(p, n);
 
@@ -112,9 +128,11 @@ static inline void *xrealloc(void *p, size_t n) {
 	#define get_pointer_useable_size(x) malloc_usable_size(x)
 #endif
 
+static inline void *xnstrcat(void *p, void *data, size_t n);
 static inline void *xnstrcat(void *p, void *data, size_t n) {
 	size_t len = strlen((char *)p);
 	size_t need = len - get_pointer_useable_size(p) + n + 1;
+
 	if(len + n + 1 > get_pointer_useable_size(p)) {
 		p = realloc(p, len + n + 1);
 	}
@@ -128,10 +146,12 @@ static inline void *xnstrcat(void *p, void *data, size_t n) {
 	return p;
 }
 
+static inline void *xstrdup(void *data);
 static inline void *xstrdup(void *data) {
 	char *str = (char *)data;
 	char *p;
 	int len = 0;
+
 	if(p = strchr(str, '\n')) {
 		len = p - str;
 	} else {
@@ -154,7 +174,8 @@ static inline void *xstrdup(void *data) {
  * 	printf_hex(s, sizeof(s_t));
  *
  */
-bool printf_hex(void *data, size_t len) {
+static inline bool printf_hex(void *data, size_t len);
+static inline bool printf_hex(void *data, size_t len) {
 	uint8_t buf[len + 1];
 	memcpy(buf, data, len);
 	for(int i = 0; i < len; i++) {
@@ -167,7 +188,8 @@ bool printf_hex(void *data, size_t len) {
 	return true;
 }
 
-uint8_t *to_upper(uint8_t *data) {
+static inline uint8_t *to_upper(uint8_t *data);
+static inline uint8_t *to_upper(uint8_t *data) {
 	int len = strlen(data);
 
 	int i = 1;
@@ -186,7 +208,8 @@ uint8_t *to_upper(uint8_t *data) {
  * 	printf_hex(s, sizeof(s_t));
  *
  */
-uint8_t *get_hex(void *data, size_t len) {
+static inline uint8_t *get_heX(void *data, size_t len);
+static inline uint8_t *get_heX(void *data, size_t len) {
 	uint8_t buf[len];
 	uint8_t *ret = calloc(len * 2 + 1, 1);
 
@@ -198,13 +221,34 @@ uint8_t *get_hex(void *data, size_t len) {
 	return ret;
 }
 
+
+/* get_hex:  huangjue.deng  2020.3.18
+ *	while let data to get struct,
+ * 	s_t *s = malloc(sizeof(*s));
+ * 	printf_hex(s, sizeof(s_t));
+ *
+ */
+static inline uint8_t *get_hex(void *data, size_t len);
+static inline uint8_t *get_hex(void *data, size_t len) {
+	uint8_t buf[len];
+	uint8_t *ret = calloc(len * 2 + 1, 1);
+
+	memcpy(buf, data, len);
+	for(int i = 0; i < len; i++) {
+		sprintf(&ret[i * 2], "%02x", buf[i]);
+	}
+
+	return ret;
+}
+
 /* get_hex_back:  huangjue.deng  2020.3.18
  *	while let data to get struct,
  * 	s_t *s = malloc(sizeof(*s));
  * 	printf_hex(s, sizeof(s_t));
  *
  */
-uint8_t *get_hex_back(void *data, size_t len) {
+static inline uint8_t *get_hex_back(void *data, size_t len);
+static inline uint8_t *get_hex_back(void *data, size_t len) {
 	uint8_t buf[len];
 	uint8_t *ret = calloc(len / 2 + 1, 1);
 
@@ -225,7 +269,8 @@ uint8_t *get_hex_back(void *data, size_t len) {
  * 	printf_hex(s, sizeof(s_t));
  *
  */
-uint8_t *get_format_hex(void *data, size_t len) {
+static inline uint8_t *get_format_hex(void *data, size_t len);
+static inline uint8_t *get_format_hex(void *data, size_t len) {
 	uint8_t buf[len + 1];
 	uint8_t *ret = malloc(len * 2 + len / 4 + 1);
 	memcpy(buf, (char *) data, len);
@@ -244,7 +289,8 @@ uint8_t *get_format_hex(void *data, size_t len) {
 
 
 #ifdef _WIN32
-int windows_control_route(int action, const char *ip, const char *mask, const char *gateway) {
+static inline int windows_control_route(int action, const char *ip, const char *mask, const char *gateway);
+static inline int windows_control_route(int action, const char *ip, const char *mask, const char *gateway) {
 	NET_LUID luid;
 	NET_IFINDEX idx;
 
@@ -283,7 +329,8 @@ int windows_control_route(int action, const char *ip, const char *mask, const ch
  *  IPv4 add/del route item in route table
     refer to https://www.cnblogs.com/wangshide/archive/2012/10/25/2740410.html
  */
-bool io_control_route(int action, char *ip, char *mask, char *iface, char *gw) {
+static inline bool io_control_route(int action, char *ip, char *mask, char *iface, char *gw);
+static inline bool io_control_route(int action, char *ip, char *mask, char *iface, char *gw) {
 	struct rtentry route;  /* route item struct */
 	char target[128] = {0};
 	char gateway[128] = {0};
@@ -414,7 +461,8 @@ int INET6_input(int type, char *bufp, struct sockaddr *sap) {
 
 /* IPv6 add/del route item in route table */
 /* main part of this function is from net-tools inet6_sr.c file */
-bool io_control_route6(int action, char *ipv6, char *mask, char *iface, char *gw) {
+static inline bool io_control_route6(int action, char *ipv6, char *mask, char *iface, char *gw);
+static inline bool io_control_route6(int action, char *ipv6, char *mask, char *iface, char *gw) {
 	struct in6_rtmsg rt;          /* ipv6 route struct */
 	struct ifreq ifr;             /* interface request struct */
 	struct sockaddr_in6 sa6;      /* ipv6 socket address */
