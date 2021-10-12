@@ -105,8 +105,8 @@ static inline double timeval_difference(struct timeval *t1, struct timeval *t2) 
 
 static inline bool xxstrstr(const char *s1, const char *s2, const char s);
 static inline bool xxstrstr(const char *s1, const char *s2, const char s) {
-	char *p = s2;
-	char *q = strstr(s1, p);
+	char *p = (char *)s2;
+	char *q = strstr((char *)s1, p);
 
 	if(!q) {
 		return false;
@@ -124,8 +124,8 @@ static inline bool xxstrstr(const char *s1, const char *s2, const char s) {
 
 static inline bool xstrstr(const char *s1, const char *s2);
 static inline bool xstrstr(const char *s1, const char *s2) {
-	char *p = s2;
-	char *q = strstr(s1, p);
+	char *p = (char *)s2;
+	char *q = strstr((char *)s1, p);
 
 	if(!q) {
 		return false;
