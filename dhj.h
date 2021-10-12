@@ -32,6 +32,22 @@
 
 #define LOG_FILE "/var/log/dhj.log"
 
+static inline void sleep_ms(int time);
+static inline void sleep_ms(int time) {
+	struct timeval tv;
+	tv.tv_sec = 0;
+	tv.tv_usec = time * 1000;
+	select(0, NULL, NULL, NULL, &tv);
+}
+
+static inline void sleep_ms(int time);
+static inline void sleep_us(int time) {
+	struct timeval tv;
+	tv.tv_sec = 0;
+	tv.tv_usec = time;
+	select(0, NULL, NULL, NULL, &tv);
+}
+
 static inline void logff(const char *file, const char *function, int line, const char *format, ...);
 static inline void logff(const char *file, const char *function, int line, const char *format, ...) {
 	va_list ap;
@@ -51,10 +67,10 @@ static inline void logff(const char *file, const char *function, int line, const
 		return;
 	}
 
-        time_t t = time(NULL);
-        char timestr[4096] = {0};
-        strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", localtime(&t));
-        fprintf(fp, "[%s] %s:%s [%d] %s\n", timestr, file, function, line, message);
+	time_t t = time(NULL);
+	char timestr[4096] = {0};
+	strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", localtime(&t));
+	fprintf(fp, "[%s] %s:%s [%d] %s\n", timestr, file, function, line, message);
 	fclose(fp);
 }
 
@@ -72,10 +88,10 @@ static inline void logdd(const char *file, const char *function, int line, const
 		message[len - 1] = 0;
 	}
 
-        time_t t = time(NULL);
-        char timestr[4096] = {0};
-        strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", localtime(&t));
-        fprintf(stderr, "[%s] %s:%s [%d] %s\n", timestr, file, function, line, message);
+	time_t t = time(NULL);
+	char timestr[4096] = {0};
+	strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", localtime(&t));
+	fprintf(stderr, "[%s] %s:%s [%d] %s\n", timestr, file, function, line, message);
 }
 
 #define FFL __FILE__, __FUNCTION__, __LINE__
@@ -85,6 +101,44 @@ static inline void logdd(const char *file, const char *function, int line, const
 static inline double timeval_difference(struct timeval *t1, struct timeval *t2);
 static inline double timeval_difference(struct timeval *t1, struct timeval *t2) {
 	return ((double) (((t2->tv_sec - t1->tv_sec) * 1.0) + ((t2->tv_usec - t1->tv_usec) / 1000000.0)));
+}
+
+static inline bool xxstrstr(const char *s1, const char *s2, const char s);
+static inline bool xxstrstr(const char *s1, const char *s2, const char s) {
+	char *p = s2;
+	char *q = strstr(s1, p);
+
+	if(!q) {
+		return false;
+	}
+
+	if((q == s1 && strlen(p) == strlen(q)) ||                      // p(AB) -> s1(AB)
+	(q == s1 && *(q + strlen(p)) == s) ||                          // p(AB) -> s1(AB\n...\nCD,EF)
+	(*(q - 1) == s && q + strlen(p) == (s1 + strlen(s1))) ||       // p(AB) -> s1(CD\nEF\n...\nAB)
+	(*(q - 1) == s && *(q + strlen(p)) == s)) {                    // p(AB) -> s1(CD\n...\nAB\n...n\EF)
+		return true;
+	}
+
+	return false;
+}
+
+static inline bool xstrstr(const char *s1, const char *s2);
+static inline bool xstrstr(const char *s1, const char *s2) {
+	char *p = s2;
+	char *q = strstr(s1, p);
+
+	if(!q) {
+		return false;
+	}
+
+	if((q == s1 && strlen(p) == strlen(q)) ||                        // p(AB) -> s1(AB)
+	(q == s1 && *(q + strlen(p)) == ',') ||                          // p(AB) -> s1(AB,...,CD,EF)
+	(*(q - 1) == ',' && q + strlen(p) == (s1 + strlen(s1))) ||       // p(AB) -> s1(CD,EF,...,AB)
+	(*(q - 1) == ',' && *(q + strlen(p)) == ',')) {                  // p(AB) -> s1(CD,...,AB,...,EF)
+		return true;
+	}
+
+	return false;
 }
 
 static inline int time_ms(void);
@@ -160,7 +214,8 @@ static inline void *xstrdup(void *data) {
 
 	if(p) p = NULL;
 
-	if(!(p = malloc(len + 1))) {
+logd("[%d]", len);
+	if(!(p = calloc(len + 1, 1))) {
 		return NULL;
 	}
 
@@ -594,5 +649,23 @@ static inline bool io_control_route6(int action, char *ipv6, char *mask, char *i
 }
 #endif
 
+static inline char *time_str(void);
+static inline char *time_str(void) {
+	time_t t = time(NULL);
+	char timestr[4096] = {0};
+	strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", localtime(&t));
+	return xstrdup(timestr);
+}
+
+static inline char *time_ms_str(void);
+static inline char *time_ms_str(void) {
+	time_t t = time(NULL);
+	char timestr[4096] = {0};
+	strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", localtime(&t));
+	struct timeval t_;
+	gettimeofday(&t_, NULL);
+	sprintf(timestr + strlen(timestr), ".%03d", t_.tv_usec / 1000);
+	return (char *)xstrdup(timestr);
+}
 
 #endif
