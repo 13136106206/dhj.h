@@ -214,7 +214,6 @@ static inline void *xstrdup(void *data) {
 
 	if(p) p = NULL;
 
-logd("[%d]", len);
 	if(!(p = calloc(len + 1, 1))) {
 		return NULL;
 	}
@@ -664,7 +663,7 @@ static inline char *time_ms_str(void) {
 	strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", localtime(&t));
 	struct timeval t_;
 	gettimeofday(&t_, NULL);
-	sprintf(timestr + strlen(timestr), ".%03d", t_.tv_usec / 1000);
+	sprintf(timestr + strlen(timestr), ".%03ld", t_.tv_usec / 1000);
 	return (char *)xstrdup(timestr);
 }
 
