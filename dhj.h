@@ -20,7 +20,7 @@
 #include <net/if.h>       /* ifreq struct */
 #include <netdb.h>
 #include <stdarg.h>
-
+#include <fcntl.h>
 
 #define ROUTE_ADD 1
 #define ROUTE_DEL 2
@@ -32,6 +32,14 @@
 
 #define LOG_FILE "/var/log/dhj.log"
 
+static inline void sleep_us(int time);
+static inline void sleep_us(int time) {
+	struct timeval tv;
+	tv.tv_sec = 0;
+	tv.tv_usec = time;
+	select(0, NULL, NULL, NULL, &tv);
+}
+
 static inline void sleep_ms(int time);
 static inline void sleep_ms(int time) {
 	struct timeval tv;
@@ -40,11 +48,12 @@ static inline void sleep_ms(int time) {
 	select(0, NULL, NULL, NULL, &tv);
 }
 
-static inline void sleep_ms(int time);
-static inline void sleep_us(int time) {
+
+static inline void sleep_s(int time);
+static inline void sleep_s(int time) {
 	struct timeval tv;
-	tv.tv_sec = 0;
-	tv.tv_usec = time;
+	tv.tv_sec = time;
+	tv.tv_usec = rand() % 100;
 	select(0, NULL, NULL, NULL, &tv);
 }
 
@@ -666,5 +675,25 @@ static inline char *time_ms_str(void) {
 	sprintf(timestr + strlen(timestr), ".%03ld", t_.tv_usec / 1000);
 	return (char *)xstrdup(timestr);
 }
+
+
+#ifndef timeradd
+#define timeradd(a, b, r) do {\
+		(r)->tv_sec = (a)->tv_sec + (b)->tv_sec;\
+		(r)->tv_usec = (a)->tv_usec + (b)->tv_usec;\
+		if((r)->tv_usec >= 1000000)\
+			(r)->tv_sec++, (r)->tv_usec -= 1000000;\
+	} while (0)
+#endif
+
+#ifndef timersub
+#define timersub(a, b, r) do {\
+		(r)->tv_sec = (a)->tv_sec - (b)->tv_sec;\
+		(r)->tv_usec = (a)->tv_usec - (b)->tv_usec;\
+		if((r)->tv_usec < 0)\
+			(r)->tv_sec--, (r)->tv_usec += 1000000;\
+	} while (0)
+#endif
+
 
 #endif
